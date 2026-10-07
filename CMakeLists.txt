@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -29,8 +30,13 @@ add_subdirectory("${DUSKLIGHT_DIR}/sdk" dusklight-sdk EXCLUDE_FROM_ALL)
 
 configure_file(mod.json.in "${CMAKE_CURRENT_BINARY_DIR}/mod.json" @ONLY NEWLINE_STYLE LF)
 
+set(_features game fmt webgpu)
+if (ENABLE_IMGUI)
+    list(APPEND _features imgui)
+endif ()
+
 add_mod(dusklight_vrm
-        FEATURES game fmt webgpu
+        FEATURES ${_features}
         SOURCES
             src/config.cpp
             src/debug_imgui.cpp
@@ -67,26 +73,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
-if (ENABLE_IMGUI)
-    FetchContent_Declare(imgui
-            URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.9b-docking.tar.gz
-            URL_HASH SHA256=466fdef9b18de15f0bb6e288e3d00ffa3d82200ec458ce5e4f724a161d9528a5
-            DOWNLOAD_EXTRACT_TIMESTAMP FALSE
-            EXCLUDE_FROM_ALL
-    )
-    FetchContent_MakeAvailable(imgui)
-
-    add_library(imgui STATIC
-            ${imgui_SOURCE_DIR}/imgui.cpp
-            ${imgui_SOURCE_DIR}/imgui_demo.cpp
-            ${imgui_SOURCE_DIR}/imgui_draw.cpp
-            ${imgui_SOURCE_DIR}/imgui_tables.cpp
-            ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-            ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
-    )
-    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
-endif ()
-
 add_subdirectory(tinygltf)
 add_subdirectory(src/helpers)
 
@@ -95,7 +81,6 @@ target_precompile_headers(dusklight_vrm PRIVATE <vector> <memory>)
 target_link_libraries(dusklight_vrm PRIVATE tinygltf glm::glm png_static wesl nlohmann_json::nlohmann_json)
 
 if (ENABLE_IMGUI)
-    target_link_libraries(dusklight_vrm PRIVATE imgui)
     target_compile_definitions(dusklight_vrm PRIVATE ENABLE_IMGUI=1)
 endif ()
 

@@ -6,12 +6,10 @@
 #include "helpers/result.hpp"
 #include "imgui.h"
 #include "mod.hpp"
-#include "mods/svc/hook.hpp"
+#include "mods/svc/imgui.h"
 #include "scene.hpp"
 
-DEFINE_HOOK_SYMBOL("mDoGph_Painter", int(), OnPaint);
-
-// extern "C" void* Amogus();
+IMPORT_SERVICE(ImguiService, svc_imgui);
 
 namespace slugcat::vrm::debug_imgui {
 
@@ -98,14 +96,7 @@ void show_scene(Scene& scene) {
 
 bool active;
 
-void on_interp_view(ModContext*, void*, void*, void*) {
-    return;
-    // ImGui::SetCurrentContext(static_cast<ImGuiContext*>(Amogus()));
-
-    if (ImGui::IsKeyPressed(ImGuiKey_Pause)) {
-        active = !active;
-    }
-
+void on_imgui_frame(ModContext*, void*) {
     if (!active) {
         return;
     }
@@ -125,10 +116,19 @@ void on_interp_view(ModContext*, void*, void*, void*) {
     }
 }
 
+void on_imgui_menu(ModContext*, void*) {
+    if (ImGui::BeginMenu("VRM")) {
+        ImGui::MenuItem("Show scene", nullptr, &active);
+
+        ImGui::EndMenu();
+    }
+}
+
 }
 
 void init() {
-    helpers::checkResult(mods::hook::add_post<OnPaint>(svc_hook, on_interp_view));
+    helpers::checkResult(svc_imgui->set_callback(mod_ctx, IMGUI_CALLBACK_FRAME, on_imgui_frame, nullptr));
+    helpers::checkResult(svc_imgui->set_callback(mod_ctx, IMGUI_CALLBACK_MENU_BAR, on_imgui_menu, nullptr));
 }
 
 }  // namespace slugcat::vrm::debug_imgui
