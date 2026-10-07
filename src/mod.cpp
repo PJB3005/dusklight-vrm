@@ -2,7 +2,6 @@
 #include "d/d_com_inf_game.h"
 
 #include "glm/gtx/matrix_decompose.hpp"
-#include "imgui.h"
 #include "loader.hpp"
 #include "mod.hpp"
 #include "ui.hpp"
