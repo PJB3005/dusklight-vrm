@@ -1,10 +1,8 @@
-# Dusklight Mod Template
+# Dusklight VRM mod
 
-A standalone template for [Dusklight](https://github.com/TwilitRealm/dusklight) mods.
+A Dusklight mod for replacing Link with an arbitrary [VRM model](https://vrm.dev/en/). Heavily work-in-progress, not ready for release yet!
 
-See the [Dusklight modding documentation](https://github.com/TwilitRealm/dusklight/blob/main/docs/modding.md)
-for the full mod API: services, hooking game functions, asset overlays, and more.
-
+<!--
 ## Quick start
 
 1. Click "Use this template" to create a new repository for your mod.
@@ -62,3 +60,4 @@ Point the build at an existing checkout instead of fetching one:
 ```sh
 cmake -B build -DDUSKLIGHT_DIR=~/path/to/dusklight
 ```
+-->

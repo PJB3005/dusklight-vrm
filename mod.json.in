@@ -1,7 +1,7 @@
 {
-  "id": "com.example.my_mod",
-  "name": "My Mod",
+  "id": "systems.slugcat.vrm",
+  "name": "VRM Loader",
   "version": "@PROJECT_VERSION@",
-  "author": "You",
-  "description": "An example Dusklight mod"
+  "author": "PJB3005 & MelonSpeedruns",
+  "description": "among us.vrm"
 }
