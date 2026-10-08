@@ -1,6 +1,7 @@
 #include <numbers>
 
 #include "debug_imgui.hpp"
+#if ENABLE_IMGUI
 #include "helpers/math.hpp"
 #include "helpers/result.hpp"
 #include "imgui.h"
@@ -131,3 +132,13 @@ void init() {
 }
 
 }  // namespace slugcat::vrm::debug_imgui
+
+#else
+
+namespace slugcat::vrm::debug_imgui {
+void init() {
+    // Nada.
+}
+} // namespace slugcat::vrm::debug_imgui
+
+#endif

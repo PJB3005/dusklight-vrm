@@ -9,6 +9,8 @@ endif ()
 
 project(dusklight_vrm VERSION 1.0.0 LANGUAGES C CXX)
 
+option(ENABLE_IMGUI "Enable imgui UI for development only")
+
 add_compile_options(
         $<$<COMPILE_LANGUAGE:C,CXX>:/bigobj>
         $<$<COMPILE_LANGUAGE:C,CXX>:/MP>
@@ -66,31 +68,37 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
-FetchContent_Declare(imgui
-        URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.9b-docking.tar.gz
-        URL_HASH SHA256=466fdef9b18de15f0bb6e288e3d00ffa3d82200ec458ce5e4f724a161d9528a5
-        DOWNLOAD_EXTRACT_TIMESTAMP FALSE
-        EXCLUDE_FROM_ALL
-)
-FetchContent_MakeAvailable(imgui)
+if (ENABLE_IMGUI)
+    FetchContent_Declare(imgui
+            URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.9b-docking.tar.gz
+            URL_HASH SHA256=466fdef9b18de15f0bb6e288e3d00ffa3d82200ec458ce5e4f724a161d9528a5
+            DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+            EXCLUDE_FROM_ALL
+    )
+    FetchContent_MakeAvailable(imgui)
 
-add_library(imgui STATIC
-        ${imgui_SOURCE_DIR}/imgui.cpp
-        ${imgui_SOURCE_DIR}/imgui_demo.cpp
-        ${imgui_SOURCE_DIR}/imgui_draw.cpp
-        ${imgui_SOURCE_DIR}/imgui_tables.cpp
-        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-        ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
-)
-target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+    add_library(imgui STATIC
+            ${imgui_SOURCE_DIR}/imgui.cpp
+            ${imgui_SOURCE_DIR}/imgui_demo.cpp
+            ${imgui_SOURCE_DIR}/imgui_draw.cpp
+            ${imgui_SOURCE_DIR}/imgui_tables.cpp
+            ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+            ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+    )
+    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+endif ()
 
 add_subdirectory(tinygltf)
 add_subdirectory(src/helpers)
 
 target_compile_definitions(dusklight_vrm PRIVATE GLM_ENABLE_EXPERIMENTAL)
 target_precompile_headers(dusklight_vrm PRIVATE <vector> <memory>)
-target_link_libraries(dusklight_vrm PRIVATE tinygltf glm::glm png_static wesl nlohmann_json::nlohmann_json imgui)
+target_link_libraries(dusklight_vrm PRIVATE tinygltf glm::glm png_static wesl nlohmann_json::nlohmann_json)
 
+if (ENABLE_IMGUI)
+    target_link_libraries(dusklight_vrm PRIVATE imgui)
+    target_compile_definitions(dusklight_vrm PRIVATE ENABLE_IMGUI=1)
+endif ()
 
 if (MSVC)
     target_compile_options(dusklight_vrm PRIVATE /guard:cf)
