@@ -281,6 +281,15 @@ void calcShading(ActorGltf* actor_gltf, render::UniformGXShading& shading, daAli
     shading.lighting.activeLights = activeLights;
 }
 
+bool should_draw_actor() {
+    daAlink_c* link = daAlink_getAlinkActorClass();
+    if (!link) {
+        return false;
+    }
+
+    return !link->checkStatusWindowDraw() && !link->checkPlayerNoDraw() && !link->checkWolf() && link->mClothesChangeWaitTimer == 0;
+}
+
 bool shouldRenderLink() {
     bool result;
     checkResult(svc_config->get_bool(mod_ctx, config::cVarRenderLinkHandle, &result));
@@ -293,7 +302,7 @@ HookAction on_link_draw_pre(ModContext*, void* args, void*, void*) {
     }
 
     daAlink_c* link = daAlink_getAlinkActorClass();
-    if (!link || link->checkWolf() || link->mClothesChangeWaitTimer != 0) {
+    if (!should_draw_actor()) {
         return HOOK_CONTINUE;
     }
 
@@ -315,7 +324,7 @@ HookAction on_link_basic_model_draw_pre(ModContext* ctx, void* args, void*, void
     }
 
     daAlink_c* link = daAlink_getAlinkActorClass();
-    if (!link || link->checkWolf()) {
+    if (!should_draw_actor()) {
         return HOOK_CONTINUE;
     }
 
@@ -371,24 +380,12 @@ int ActorGltf::IsDelete() {
     return 1;
 }
 
-bool should_draw_actor() {
-    daAlink_c* link = daAlink_getAlinkActorClass();
-    if (!link) {
-        return false;
-    }
-
-    return !link->checkPlayerNoDraw() && !link->checkWolf() && link->mClothesChangeWaitTimer == 0;
-}
-
 constexpr float kModelScaleFactor = 150;
 
 int ActorGltf::Execute() {
     daAlink_c* link = daAlink_getAlinkActorClass();
-    if (!link) {
-        return 1;
-    }
 
-    if (!should_draw_actor()) {
+    if (!link || !should_draw_actor()) {
         return 0;
     }
 
