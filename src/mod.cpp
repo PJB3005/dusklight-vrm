@@ -34,7 +34,6 @@
 
 DEFINE_HOOK(&daAlink_c::basicModelDraw, LinkBasicModelDraw);
 DEFINE_HOOK(&daAlink_c::modelDraw, LinkDraw);
-DEFINE_HOOK_SYMBOL("daAlink_modelCallBack", int(J3DJoint* i_joint, int param_1), ModelCallback);
 DEFINE_HOOK(&daAlink_c::createHeap, LinkCreateHeap);
 
 using namespace mods::actor;
@@ -282,10 +281,6 @@ bool shouldRenderLink() {
     return result;
 }
 
-HookAction on_link_model_callback_pre(ModContext*, void* args, void*, void*) {
-    return shouldRenderLink() ? HOOK_CONTINUE : HOOK_SKIP_ORIGINAL;
-}
-
 HookAction on_link_draw_pre(ModContext*, void* args, void*, void*) {
     if (shouldRenderLink()) {
         return HOOK_CONTINUE;
@@ -304,6 +299,7 @@ HookAction on_link_draw_pre(ModContext*, void* args, void*, void*) {
     {
         return HOOK_SKIP_ORIGINAL;
     }
+
     return HOOK_CONTINUE;
 }
 
@@ -448,7 +444,6 @@ ModResult modInit() {
     mods::hook::add_pre<LinkCreateHeap>(link_create_heap);
     mods::hook::add_pre<LinkBasicModelDraw>(on_link_basic_model_draw_pre);
     mods::hook::add_pre<LinkDraw>(on_link_draw_pre);
-    mods::hook::add_pre<ModelCallback>(on_link_model_callback_pre);
 
     if (svc_actor->register_actor(mod_ctx, &ActorGltf::sProfile, &ActorGltf::sProcName,
             &ActorGltf::sActorHandle) != MOD_OK)
