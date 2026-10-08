@@ -18,7 +18,14 @@ constexpr ConfigVarDesc cVarVrmScaleDesc{
     .struct_size = sizeof(cVarVrmScaleDesc),
     .name = "vrm_scale",
     .type = CONFIG_VAR_INT,
-    .default_int = kScaleBase,
+    .default_int = kPercentValueBase,
+};
+
+constexpr ConfigVarDesc cVarVrmBrightnessDesc{
+    .struct_size = sizeof(cVarVrmBrightnessDesc),
+    .name = "vrm_brightness",
+    .type = CONFIG_VAR_INT,
+    .default_int = kPercentValueBase,
 };
 
 constexpr ConfigVarDesc cVarRenderLinkDesc{
@@ -30,13 +37,15 @@ constexpr ConfigVarDesc cVarRenderLinkDesc{
 
 }  // namespace
 
-ConfigVarHandle cVarPathHandle;
-ConfigVarHandle cVarVrmScaleHandle;
+ConfigVarHandle cVarVrmPathHandle;
+ConfigVarHandle cVarVrmScale;
+ConfigVarHandle cVarVrmBrightness;
 ConfigVarHandle cVarRenderLinkHandle;
 
 void init() {
-    checkResult(svc_config->register_var(mod_ctx, &cVarVrmPathDesc, &cVarPathHandle));
-    checkResult(svc_config->register_var(mod_ctx, &cVarVrmScaleDesc, &cVarVrmScaleHandle));
+    checkResult(svc_config->register_var(mod_ctx, &cVarVrmPathDesc, &cVarVrmPathHandle));
+    checkResult(svc_config->register_var(mod_ctx, &cVarVrmScaleDesc, &cVarVrmScale));
+    checkResult(svc_config->register_var(mod_ctx, &cVarVrmBrightnessDesc, &cVarVrmBrightness));
     checkResult(svc_config->register_var(mod_ctx, &cVarRenderLinkDesc, &cVarRenderLinkHandle));
 }
 

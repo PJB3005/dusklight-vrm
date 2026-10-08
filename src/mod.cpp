@@ -209,7 +209,7 @@ void recordMatricesForInterp(ActorGltf& actor) {
     }
 }
 
-void calcShading(render::UniformGXShading& shading, daAlink_c const& link) {
+void calcShading(ActorGltf* actor_gltf, render::UniformGXShading& shading, daAlink_c const& link) {
     shading = {};
 
     J3DMaterial* mat = nullptr;
@@ -232,6 +232,13 @@ void calcShading(render::UniformGXShading& shading, daAlink_c const& link) {
     shading.lighting.ambientColor = helpers::convertColor(link.tevStr.AmbCol);
     shading.color1 = helpers::convertColor(*mat->getTevColor(1));
     shading.kColor0 = helpers::convertColor(link.tevStr.TevKColor);
+
+    int64_t scalePercent = config::kPercentValueBase;
+    checkResult(svc_config->get_int(mod_ctx, config::cVarVrmBrightness, &scalePercent));
+    auto const scale = static_cast<float>(scalePercent) / static_cast<float>(config::kPercentValueBase);
+    for (const auto & tg3Material : actor_gltf->scene->materials) {
+        tg3Material->color = glm::vec4(scale, scale, scale, 1.0f);
+    }
 
     // The game does all rendering with world-space being centered at view-space.
     // This is irrelevant to most of our rendering, but it means that light positions are relative.
@@ -333,11 +340,11 @@ cPhs_Step ActorGltf::Create() {
     AuroraGXSync();
 
     size_t length;
-    checkResult(svc_config->get_string(mod_ctx, config::cVarPathHandle, nullptr, 0, &length));
+    checkResult(svc_config->get_string(mod_ctx, config::cVarVrmPathHandle, nullptr, 0, &length));
     std::string buf;
     buf.resize(length);
     checkResult(svc_config->get_string(
-        mod_ctx, config::cVarPathHandle, buf.data(), buf.size() + 1, nullptr));
+        mod_ctx, config::cVarVrmPathHandle, buf.data(), buf.size() + 1, nullptr));
 
     try {
         auto loadedScene = std::make_shared<Scene>(loader::loadScene(buf.c_str()));
@@ -387,9 +394,9 @@ int ActorGltf::Execute() {
 
     mDoMtx_stack_c::copy(link->mpLinkModel->getBaseTRMtx());
 
-    int64_t scalePercent = config::kScaleBase;
-    checkResult(svc_config->get_int(mod_ctx, config::cVarVrmScaleHandle, &scalePercent));
-    auto const scale = kModelScaleFactor * scalePercent / static_cast<float>(config::kScaleBase);
+    int64_t scalePercent = config::kPercentValueBase;
+    checkResult(svc_config->get_int(mod_ctx, config::cVarVrmScale, &scalePercent));
+    auto const scale = kModelScaleFactor * scalePercent / static_cast<float>(config::kPercentValueBase);
     mDoMtx_stack_c::scaleM(scale, scale, scale);
 
     auto const baseMtx = matrix::fromDolphinMtx(mDoMtx_stack_c::get());
@@ -409,7 +416,7 @@ int ActorGltf::Draw() {
         return 0;
     }
 
-    calcShading(packet.shading, *link);
+    calcShading(this, packet.shading, *link);
 
     dComIfGd_getOpaList()->entryImm(&packet, 0);
 

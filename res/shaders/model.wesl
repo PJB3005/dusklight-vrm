@@ -80,10 +80,11 @@ fn fs_main(input: VsOutput) -> @location(0) vec4f {
     var tev = gxShading.kColor0 * (vec4f(1.0) - input.rasColor) + texVal * input.rasColor;
     tev += gxShading.color1;
     tev *= 4.0;
+    tev *= material.color;
 
     return clamp(tev, vec4f(0.0), vec4f(1.0));
 
     // return texVal * material.color;
-    //return input.rasColor;
-    //return vec4f(normalize(input.normal), 1.0);
+    // return input.rasColor;
+    // return vec4f(normalize(input.normal), 1.0);
 }

@@ -3,11 +3,12 @@
 
 namespace slugcat::vrm::config {
 
-extern ConfigVarHandle cVarPathHandle;
-extern ConfigVarHandle cVarVrmScaleHandle;
+extern ConfigVarHandle cVarVrmPathHandle;
+extern ConfigVarHandle cVarVrmScale;
+extern ConfigVarHandle cVarVrmBrightness;
 extern ConfigVarHandle cVarRenderLinkHandle;
 
-constexpr int64_t kScaleBase = 100;
+constexpr int64_t kPercentValueBase = 100;
 
 void init();
 
