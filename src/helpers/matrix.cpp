@@ -14,6 +14,17 @@ glm::mat4 fromDolphinMtx(Mtx matrix) noexcept {
     // clang-format on
 }
 
+void toDolphinMtx(glm::mat4 matrix, Mtx* outMtx) noexcept {
+    // clang-format off
+    Mtx result{
+        matrix[0][0], matrix[1][0], matrix[2][0], matrix[3][0],
+        matrix[0][1], matrix[1][1], matrix[2][1], matrix[3][1],
+        matrix[0][2], matrix[1][2], matrix[2][2], matrix[3][2],
+    };
+    std::memcpy(outMtx, result, sizeof(Mtx));
+    // clang-format on
+}
+
 /**
  * Decompose a matrix to translation, rotation, and scale.
  *
