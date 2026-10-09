@@ -187,6 +187,25 @@ void applyLinkRootTranslation(
     rootEnt.translation = rootEnt.referenceTranslation + relRootOffset;
 }
 
+void applyFirstPersonMode(daAlink_c const& link, Scene& scene) {
+    for (const auto& [humanoidBone, linkJoint] : bones::vrmBonesToLinkJoints) {
+        auto const foundEnt = scene.humanoidBones.find(humanoidBone);
+        if (foundEnt == scene.humanoidBones.end()) {
+            continue;
+        }
+
+        if (humanoidBone == bones::vrm::kBoneNeck) {
+            auto& entity = scene.get_entity(foundEnt->second);
+            if (dComIfGp_checkCameraAttentionStatus(link.field_0x317c, 0x20)) {
+                entity.scale = {0,0,0};
+            } else {
+                entity.scale = entity.originalScale;
+            }
+            break;
+        }
+    }
+}
+
 void applyTransformsRecursive(Scene& scene, EntityId entity_id, glm::mat4 const& transform) {
     auto& entity = scene.get_entity(entity_id);
     entity.localXform = calcLocalTransform(entity);
@@ -292,7 +311,7 @@ bool should_draw_actor() {
 
 bool shouldRenderLink() {
     bool result;
-    checkResult(svc_config->get_bool(mod_ctx, config::cVarRenderLinkHandle, &result));
+    checkResult(svc_config->get_bool(mod_ctx, config::cVarRenderLink, &result));
     return result;
 }
 
@@ -311,26 +330,6 @@ HookAction on_link_draw_pre(ModContext*, void* args, void*, void*) {
         i_model == link->mpLinkHandModel || i_model == link->mpLinkFaceModel ||
         i_model == link->mpDemoFCBlendModel || i_model == link->mpDemoFCTongueModel ||
         i_model == link->mpDemoHLTmpModel || i_model == link->mpDemoHRTmpModel)
-    {
-        return HOOK_SKIP_ORIGINAL;
-    }
-
-    return HOOK_CONTINUE;
-}
-
-HookAction on_link_basic_model_draw_pre(ModContext* ctx, void* args, void*, void*) {
-    if (shouldRenderLink()) {
-        return HOOK_CONTINUE;
-    }
-
-    daAlink_c* link = daAlink_getAlinkActorClass();
-    if (!should_draw_actor()) {
-        return HOOK_CONTINUE;
-    }
-
-    J3DModel* i_model = mods::arg<J3DModel*>(args, 1);
-    if (i_model == link->mpLinkModel || i_model == link->mpLinkHatModel ||
-        i_model == link->mpLinkHandModel || i_model == link->mpLinkFaceModel)
     {
         return HOOK_SKIP_ORIGINAL;
     }
@@ -400,6 +399,7 @@ int ActorGltf::Execute() {
 
     applyLinkPose(*link, *scene);
     applyLinkRootTranslation(*link, *scene, baseMtx);
+    applyFirstPersonMode(*link, *scene);
 
     applyTransformsRecursive(*scene, scene->root, baseMtx);
     recordMatricesForInterp(*this);
@@ -445,7 +445,7 @@ ModResult modInit() {
     ui::init();
 
     mods::hook::add_pre<LinkCreateHeap>(link_create_heap);
-    mods::hook::add_pre<LinkBasicModelDraw>(on_link_basic_model_draw_pre);
+    mods::hook::add_pre<LinkBasicModelDraw>(on_link_draw_pre);
     mods::hook::add_pre<LinkDraw>(on_link_draw_pre);
 
     if (svc_actor->register_actor(mod_ctx, &ActorGltf::sProfile, &ActorGltf::sProcName,

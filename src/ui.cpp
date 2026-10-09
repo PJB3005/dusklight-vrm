@@ -51,7 +51,7 @@ ModResult build(ModContext*, UiElementHandle panel, void*, ModError*) {
     control4.label = "Draw Link";
     control4.help_rml = "Draw Link for debugging purposes";
     control4.binding = UI_BINDING_CONFIG_VAR;
-    control4.config_var = config::cVarRenderLinkHandle;
+    control4.config_var = config::cVarRenderLink;
     svc_ui->pane_add_control(mod_ctx, panel, &control4, &elemScale);
 
     return MOD_OK;

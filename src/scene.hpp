@@ -69,6 +69,8 @@ struct Entity {
     glm::quat rotation = glm::identity<glm::quat>();
     glm::vec3 scale = glm::vec3(1.0f);
 
+    glm::vec3 originalScale = glm::vec3(1.0f);
+
     glm::vec3 referenceTranslation = {};
 
     glm::quat referenceRotation = glm::identity<glm::quat>();

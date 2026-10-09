@@ -40,13 +40,13 @@ constexpr ConfigVarDesc cVarRenderLinkDesc{
 ConfigVarHandle cVarVrmPathHandle;
 ConfigVarHandle cVarVrmScale;
 ConfigVarHandle cVarVrmBrightness;
-ConfigVarHandle cVarRenderLinkHandle;
+ConfigVarHandle cVarRenderLink;
 
 void init() {
     checkResult(svc_config->register_var(mod_ctx, &cVarVrmPathDesc, &cVarVrmPathHandle));
     checkResult(svc_config->register_var(mod_ctx, &cVarVrmScaleDesc, &cVarVrmScale));
     checkResult(svc_config->register_var(mod_ctx, &cVarVrmBrightnessDesc, &cVarVrmBrightness));
-    checkResult(svc_config->register_var(mod_ctx, &cVarRenderLinkDesc, &cVarRenderLinkHandle));
+    checkResult(svc_config->register_var(mod_ctx, &cVarRenderLinkDesc, &cVarRenderLink));
 }
 
 }  // namespace slugcat::vrm::config

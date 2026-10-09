@@ -488,6 +488,7 @@ void applyNodeTransform(scene::Entity& entity, tg3_node const& node) {
         setLocalMatrix(entity, mtx);
     } else {
         entity.scale = {node.scale[0], node.scale[1], node.scale[2]};
+        entity.originalScale = {node.scale[0], node.scale[1], node.scale[2]};
         entity.rotation = read_glm_quat(node.rotation);
         entity.translation = {node.translation[0], node.translation[1], node.translation[2]};
     }
