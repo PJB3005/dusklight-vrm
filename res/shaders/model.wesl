@@ -73,8 +73,21 @@ fn vs_main(input: VsInput) -> VsOutput {
     return output;
 }
 
+struct FragmentOutput {
+    @location(0) color: vec4f,
+
+    @if (NORMAL_BUFFER)
+    @location(1) normals: vec4f,
+}
+
+fn calcNormalReturn(normal: vec3f) -> vec4f {
+    let nrm_len_sq = dot(normal, normal);
+    let unit_nrm = select(vec3f(0.0), normal, nrm_len_sq > 1e-10);
+    return vec4f(unit_nrm * 0.5 + 0.5, select(0.0, 1.0, nrm_len_sq > 1e-10));
+}
+
 @fragment
-fn fs_main(input: VsOutput) -> @location(0) vec4f {
+fn fs_main(input: VsOutput) -> FragmentOutput {
     let texVal = textureSample(tex0_t, tex0_s, input.texCoord);
 
     var tev = gxShading.kColor0 * (vec4f(1.0) - input.rasColor) + texVal * input.rasColor;
@@ -82,8 +95,13 @@ fn fs_main(input: VsOutput) -> @location(0) vec4f {
     tev *= 4.0;
     tev *= material.color;
 
-    return clamp(tev, vec4f(0.0), vec4f(1.0));
+    var output: FragmentOutput;
+    output.color = clamp(tev, vec4f(0.0), vec4f(1.0));
 
+    @if (NORMAL_BUFFER && NORMALS)
+    output.normals = calcNormalReturn(normalize(input.normal));
+
+    return output;
     // return texVal * material.color;
     // return input.rasColor;
     // return vec4f(normalize(input.normal), 1.0);

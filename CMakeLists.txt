@@ -43,6 +43,8 @@ add_mod(dusklight_vrm
             src/image_io.cpp
             src/loader.cpp
             src/mod.cpp
+            src/pipelines.cpp
+            src/pipelines.hpp
             src/render.cpp
             src/scene.cpp
             src/services.cpp
@@ -78,7 +80,7 @@ add_subdirectory(src/helpers)
 
 target_compile_definitions(dusklight_vrm PRIVATE GLM_ENABLE_EXPERIMENTAL)
 target_precompile_headers(dusklight_vrm PRIVATE <vector> <memory>)
-target_link_libraries(dusklight_vrm PRIVATE tinygltf glm::glm png_static wesl nlohmann_json::nlohmann_json)
+target_link_libraries(dusklight_vrm PRIVATE tinygltf glm::glm png_static wesl nlohmann_json::nlohmann_json xxHash::xxhash)
 
 if (ENABLE_IMGUI)
     target_compile_definitions(dusklight_vrm PRIVATE ENABLE_IMGUI=1)

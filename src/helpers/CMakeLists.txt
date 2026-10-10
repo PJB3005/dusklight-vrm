@@ -1,4 +1,5 @@
 target_sources(dusklight_vrm PRIVATE
+        channel.hpp
         buffer.cpp
         buffer.hpp
         collections.hpp
@@ -8,5 +9,7 @@ target_sources(dusklight_vrm PRIVATE
         matrix.cpp
         matrix.hpp
         result.hpp
+        thread.cpp
+        thread.hpp
         tg3.hpp
 )

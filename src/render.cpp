@@ -1,5 +1,7 @@
 #include "render.hpp"
 
+#include "pipelines.hpp"
+
 #include <stdexcept>
 
 #include "SSystem/SComponent/c_xyz.h"
@@ -21,7 +23,6 @@ namespace {
 
 struct Payload {
     std::shared_ptr<Scene> scene;
-    wgpu::RenderPipeline pipeline;
 
     GfxRange uniformGlobalRange;
     std::vector<GfxRange> uniformObjectRanges;
@@ -41,11 +42,11 @@ void WawaDrawEntity(wgpu::RenderPassEncoder const& encoder, Payload const& paylo
 
     for (auto const& primitive : mesh.primitives) {
         encoder.SetVertexBuffer(
-            0, primitive.vertex.buffer, primitive.vertex.offset, primitive.vertex.size);
+            VTX_BUF_POSITION, primitive.vertex.buffer, primitive.vertex.offset, primitive.vertex.size);
         encoder.SetVertexBuffer(
-            1, primitive.texCoord.buffer, primitive.texCoord.offset, primitive.texCoord.size);
+            VTX_BUF_TEXCOORD, primitive.texCoord.buffer, primitive.texCoord.offset, primitive.texCoord.size);
         encoder.SetVertexBuffer(
-                    2, primitive.normal.buffer, primitive.normal.offset, primitive.normal.size);
+                    VTX_BUF_NORMAL, primitive.normal.buffer, primitive.normal.offset, primitive.normal.size);
 
         if (entity.skinData) {
             auto const& sharedSkinData = *entity.skinData;
@@ -55,8 +56,8 @@ void WawaDrawEntity(wgpu::RenderPassEncoder const& encoder, Payload const& paylo
 
             auto const& primSkinData = *primitive.skinData;
 
-            bindVertexBuffer(encoder, primSkinData.joints, 3);
-            bindVertexBuffer(encoder, primSkinData.weights, 4);
+            bindVertexBuffer(encoder, primSkinData.joints, VTX_BUF_SKIN_JOINTS);
+            bindVertexBuffer(encoder, primSkinData.weights, VTX_BUF_SKIN_WEIGHTS);
         }
 
         encoder.SetIndexBuffer(primitive.index.buffer,
@@ -128,11 +129,23 @@ void WawaDrawEntity(wgpu::RenderPassEncoder const& encoder, Payload const& paylo
     }
 }
 
+void FillPipelineTargetDesc(pipelines::PipelineDesc& desc, GfxRenderTargetLayout const& layout) {
+    desc.depthFormat = static_cast<wgpu::TextureFormat>(layout.depth_stencil_format);
+    desc.colorFormat = static_cast<wgpu::TextureFormat>(layout.color_attachments[GFX_SCENE_COLOR_ATTACHMENT_INDEX].format);
+
+    for (auto const& attachment : layout.color_attachments) {
+        if (attachment.semantic == GFX_ATTACHMENT_NORMAL) {
+            desc.normalFormat = static_cast<wgpu::TextureFormat>(attachment.format);
+            break;
+        }
+    }
+}
+
 void WawaDraw(ModContext*, const GfxDrawContext* draw_ctx, const void* payload_raw,
     size_t payload_size, void*) {
     assert(payload_size == sizeof(Payload const*));
 
-    auto* payload = *static_cast<Payload* const*>(payload_raw);
+    std::unique_ptr<Payload> payload(*static_cast<Payload* const*>(payload_raw));
 
     wgpu::RenderPassEncoder encoder = draw_ctx->pass;
 
@@ -172,9 +185,21 @@ void WawaDraw(ModContext*, const GfxDrawContext* draw_ctx, const void* payload_r
     auto const bindGroupObject = sDevice.CreateBindGroup(&bindGroupDescObject);
     */
 
+    pipelines::PipelineDesc pipelineDesc {
+        .skinned = true,
+        .normals = true,
+        .gxShading = true,
+    };
+    FillPipelineTargetDesc(pipelineDesc, draw_ctx->layout);
+
+    auto const foundPipeline = pipelines::try_get_pipeline(pipelineDesc);
+    if (!foundPipeline.has_value()) {
+        return;
+    }
+
     encoder.PushDebugGroup("REAL"sv);
 
-    encoder.SetPipeline(payload->pipeline);
+    encoder.SetPipeline(foundPipeline.value());
     encoder.SetBindGroup(0, bindGroup, 0, nullptr);
 
     int i = 0;
@@ -185,8 +210,6 @@ void WawaDraw(ModContext*, const GfxDrawContext* draw_ctx, const void* payload_r
     }
 
     encoder.PopDebugGroup();
-
-    delete payload;
 }
 
 GfxDrawTypeHandle gDrawModelCommandType;
@@ -340,124 +363,12 @@ void init() {
     }
 }
 
-FoobarPacket::FoobarPacket() {
-    auto const shaderModule = shader::compileShader(
-        "shaders::model", {{"SKINNED", true}, {"GX_SHADING", true}, {"NORMALS", true}});
-
-    static constexpr wgpu::VertexAttribute attr{
-        .format = wgpu::VertexFormat::Float32x3,
-        .shaderLocation = 0,
-    };
-    static constexpr wgpu::VertexAttribute attrTexCoord[]{{
-        .format = wgpu::VertexFormat::Float32x2,
-        .shaderLocation = 1,
-    }};
-    static constexpr wgpu::VertexAttribute attrNormal[]{{
-        .format = wgpu::VertexFormat::Float32x3,
-        .shaderLocation = 2,
-    }};
-    static constexpr wgpu::VertexAttribute attrJoints[]{{
-        .format = wgpu::VertexFormat::Uint16x4,
-        .shaderLocation = 6,
-    }};
-    static constexpr wgpu::VertexAttribute attrWeights[]{{
-        .format = wgpu::VertexFormat::Float32x4,
-        .shaderLocation = 7,
-    }};
-
-    static constexpr wgpu::VertexBufferLayout buffers[]{
-        {
-            .stepMode = wgpu::VertexStepMode::Vertex,
-            .arrayStride = sizeof(cXyz),
-            .attributeCount = 1,
-            .attributes = &attr,
-        },
-        {
-            .stepMode = wgpu::VertexStepMode::Vertex,
-            .arrayStride = sizeof(cXy),
-            .attributeCount = std::size(attrTexCoord),
-            .attributes = attrTexCoord,
-        },
-        {
-            .stepMode = wgpu::VertexStepMode::Vertex,
-            .arrayStride = 12, // vec3<float>
-            .attributeCount = std::size(attrNormal),
-            .attributes = attrNormal,
-        },
-        {
-            .stepMode = wgpu::VertexStepMode::Vertex,
-            .arrayStride = 8,  // vec4<unsigned short>
-            .attributeCount = std::size(attrJoints),
-            .attributes = attrJoints,
-        },
-        {
-            .stepMode = wgpu::VertexStepMode::Vertex,
-            .arrayStride = 16,  // vec4<float>
-            .attributeCount = std::size(attrWeights),
-            .attributes = attrWeights,
-        },
-    };
-
-    static constexpr wgpu::BlendState blend{
-        .color = {.operation = wgpu::BlendOperation::Add,
-            .srcFactor = wgpu::BlendFactor::SrcAlpha,
-            .dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha},
-        .alpha = {.operation = wgpu::BlendOperation::Add,
-            .srcFactor = wgpu::BlendFactor::One,
-            .dstFactor = wgpu::BlendFactor::One},
-    };
-
-    wgpu::ColorTargetState const targetState = {
-        .format = (wgpu::TextureFormat)sDeviceInfo.color_format,
-        .blend = &blend,
-        .writeMask = wgpu::ColorWriteMask::All,
-    };
-
-    wgpu::FragmentState const fragmentState{
-        .module = shaderModule,
-        .entryPoint = "fs_main"sv,
-        .targetCount = 1,
-        .targets = &targetState,
-    };
-
-    static constexpr wgpu::DepthStencilState depthStencil{
-        .format = wgpu::TextureFormat::Depth32Float,
-        .depthWriteEnabled = WGPUOptionalBool_True,
-        .depthCompare = wgpu::CompareFunction::Greater,
-    };
-
-    auto pipelineDesc = wgpu::RenderPipelineDescriptor{
-        .label = "Wawa"sv,
-        .layout = sPipelineLayout,
-        .vertex =
-            {
-                .module = shaderModule,
-                .entryPoint = "vs_main"sv,
-                .bufferCount = std::size(buffers),
-                .buffers = buffers,
-            },
-        .primitive =
-            {
-                .topology = wgpu::PrimitiveTopology::TriangleList,
-                .frontFace = wgpu::FrontFace::CCW,
-                .cullMode = wgpu::CullMode::Back,
-            },
-        .depthStencil = &depthStencil,
-        .multisample =
-            {
-                .count = 1,
-                .mask = 0xFFFF'FFFF,
-            },
-        .fragment = &fragmentState,
-    };
-
-    pipeline = sDevice.CreateRenderPipeline(&pipelineDesc);
-}
+FoobarPacket::FoobarPacket() = default;
 
 std::vector<glm::mat4> gJointCalcBuffer;
 
 void FoobarPacket::draw() {
-    auto* payload = new Payload{scene, pipeline};
+    auto* payload = new Payload{scene};
 
     auto const& view = *g_dComIfG_gameInfo.play.mCurrentView;
 

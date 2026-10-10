@@ -43,3 +43,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(PNG)
 add_library(PNG::PNG ALIAS png_static)
+
+#
+# xxHash
+#
+
+FetchContent_Declare(xxhash
+        URL https://github.com/Cyan4973/xxHash/archive/refs/tags/v0.8.3.tar.gz
+        URL_HASH SHA256=aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80
+        SOURCE_SUBDIR cmake_unofficial
+        DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+        EXCLUDE_FROM_ALL
+)
+set(XXHASH_BUILD_XXHSUM OFF CACHE INTERNAL "Build the xxhsum binary")
+FetchContent_MakeAvailable(xxhash)
+unset(BUILD_SHARED_LIBS CACHE)

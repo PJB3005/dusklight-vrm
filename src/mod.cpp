@@ -29,6 +29,7 @@
 #include "debug_imgui.hpp"
 #include "helpers/hash.hpp"
 #include "helpers/result.hpp"
+#include "pipelines.hpp"
 #include "webgpu/webgpu_cpp.h"
 
 DEFINE_HOOK(&daAlink_c::basicModelDraw, LinkBasicModelDraw);
@@ -443,6 +444,7 @@ ModResult modInit() {
     render::init();
     config::init();
     ui::init();
+    pipelines::init();
 
     mods::hook::add_pre<LinkCreateHeap>(link_create_heap);
     mods::hook::add_pre<LinkBasicModelDraw>(on_link_draw_pre);
@@ -460,6 +462,12 @@ ModResult modInit() {
     return MOD_OK;
 }
 
+ModResult modShutdown() {
+    pipelines::shutdown();
+
+    return MOD_OK;
+}
+
 }  // namespace slugcat::vrm
 
 extern "C" {
@@ -472,6 +480,6 @@ MOD_EXPORT ModResult mod_update(ModError*) {
 }
 
 MOD_EXPORT ModResult mod_shutdown(ModError*) {
-    return MOD_OK;
+    return slugcat::vrm::modShutdown();
 }
 }

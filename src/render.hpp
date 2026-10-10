@@ -20,6 +20,12 @@ extern wgpu::BindGroupLayout sBindGroupLayoutMaterial;
 extern wgpu::BindGroupLayout sBindGroupLayoutObject;
 extern wgpu::PipelineLayout sPipelineLayout;
 
+constexpr uint32_t VTX_BUF_POSITION = 0;
+constexpr uint32_t VTX_BUF_TEXCOORD = 1;
+constexpr uint32_t VTX_BUF_NORMAL = 2;
+constexpr uint32_t VTX_BUF_SKIN_JOINTS = 6;
+constexpr uint32_t VTX_BUF_SKIN_WEIGHTS = 7;
+
 void init();
 
 struct UniformGlobal {
@@ -64,7 +70,6 @@ struct UniformGXShading {
 
 class FoobarPacket final : public J3DPacket {
 public:
-    wgpu::RenderPipeline pipeline;
     std::shared_ptr<scene::Scene> scene;
     std::vector<mods::interp::InterpMatrix> entityMatrices;
 
