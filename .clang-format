@@ -1,0 +1,7 @@
+FixNamespaceComments: true
+NamespaceIndentation: None
+IndentWidth: 4
+BinPackParameters: OnePerLine
+ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: Inline
+PointerAlignment: Left
