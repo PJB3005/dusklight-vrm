@@ -3,7 +3,6 @@
 #include "helpers/string_slug.hpp"
 #include "render.hpp"
 
-#include "mods/svc/log.h"
 #include "mods/svc/log.hpp"
 #include "mods/svc/resource.hpp"
 #include "wesl.h"
@@ -34,15 +33,17 @@ WeslResolveSourceResult* resolveSource(char const* modPath, void*) noexcept {
     path.append(".wesl"sv);
 
     auto const resource = mods::resource::load(path);
-    if (!resource.is_ok()) {
+    if (!resource.has_value()) {
         mods::log::error("shader resolveSource: failed to resolve '{}': file '{}' failed to load",
             modPath, path);
         return &gFailedResult;
     }
 
-    auto const buffer = new char[resource.buffer.size + 1];
-    std::memcpy(buffer, resource.buffer.data, resource.buffer.size);
-    buffer[resource.buffer.size] = '\0';
+    auto const& res = resource.value();
+
+    auto const buffer = new char[res.buffer.size + 1];
+    std::memcpy(buffer, res.buffer.data, res.buffer.size);
+    buffer[res.buffer.size] = '\0';
 
     return new WeslResolveSourceResult{
         .success = true,
