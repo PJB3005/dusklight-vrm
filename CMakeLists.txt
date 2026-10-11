@@ -42,6 +42,8 @@ add_mod(dusklight_vrm
             src/debug_imgui.cpp
             src/image_io.cpp
             src/loader.cpp
+            src/mipmap_gen.cpp
+            src/mipmap_gen.hpp
             src/mod.cpp
             src/pipelines.cpp
             src/pipelines.hpp

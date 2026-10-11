@@ -19,6 +19,8 @@ struct LoadedImageBuffer {
     LoadedImageBuffer(wgpu::TextureFormat format, wgpu::Extent2D extent, uint32_t mipLevels, BufferType buffer) noexcept;
     LoadedImageBuffer(LoadedImageBuffer const&) = delete;
     LoadedImageBuffer(LoadedImageBuffer&&) = default;
+
+    LoadedImageBuffer& operator=(LoadedImageBuffer&&) = default;
 };
 
 LoadedImageBuffer load(std::span<uint8_t const> data, std::string_view mimeType);

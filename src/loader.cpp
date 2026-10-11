@@ -3,11 +3,12 @@
 #include <fstream>
 #include <numbers>
 
+#include "bones.hpp"
 #include "helpers/collections.hpp"
 #include "helpers/hash.hpp"
 #include "helpers/tg3.hpp"
 #include "image_io.hpp"
-#include "bones.hpp"
+#include "mipmap_gen.hpp"
 #include "render.hpp"
 
 #include <nlohmann/json.hpp>
@@ -278,6 +279,13 @@ struct LoaderState {
             }
 
             auto loadedData = image_io::load(model, tg3Texture.source);
+            if (loadedData.mipLevels == 1) {
+                auto const then = std::chrono::steady_clock::now();
+                loadedData = mipmap_gen::genMipmaps(std::move(loadedData));
+                auto const now = std::chrono::steady_clock::now();
+                auto const ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - then);
+                mods::log::debug("Mipmap gen took {}ms", ms.count());
+            }
 
             wgpu::TextureDescriptor const textureDesc{
                 .usage = wgpu::TextureUsage::CopyDst | wgpu::TextureUsage::TextureBinding,
@@ -295,23 +303,31 @@ struct LoaderState {
             texture->texture = render::sDevice.CreateTexture(&textureDesc);
             texture->textureView = texture->texture.CreateView();
 
-            wgpu::TexelCopyTextureInfo const destInfo{
-                .texture = texture->texture,
-                .mipLevel = 0,
-                .origin = {},
-            };
+            u32 mipW = loadedData.extent.width;
+            u32 mipH = loadedData.extent.height;
 
-            wgpu::TexelCopyBufferLayout const srcLayout{
-                .offset = 0,
-                .bytesPerRow = 4 * loadedData.extent.width,
-                .rowsPerImage = loadedData.extent.height,
-            };
+            for (u32 mipLevel = 0; mipLevel < loadedData.mipLevels; mipLevel += 1) {
+                wgpu::TexelCopyTextureInfo const destInfo{
+                    .texture = texture->texture,
+                    .mipLevel = mipLevel,
+                    .origin = {},
+                };
 
-            wgpu::Extent3D const writeExtent{loadedData.extent.width, loadedData.extent.height};
+                wgpu::TexelCopyBufferLayout const srcLayout{
+                    .offset = 0,
+                    .bytesPerRow = 4 * mipW,
+                    .rowsPerImage = mipH,
+                };
 
-            auto const& bufRef = loadedData.buffer[0];
-            render::sQueue.WriteTexture(
-                &destInfo, bufRef.data(), bufRef.size(), &srcLayout, &writeExtent);
+                wgpu::Extent3D const writeExtent{mipW, mipH};
+
+                auto const& bufRef = loadedData.buffer.at(mipLevel);
+                render::sQueue.WriteTexture(&destInfo, bufRef.data(), bufRef.size(), &srcLayout,
+                                            &writeExtent);
+
+                mipW /= 2;
+                mipH /= 2;
+            }
 
             return texture;
         });
