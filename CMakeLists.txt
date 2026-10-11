@@ -20,7 +20,7 @@ add_compile_options(
 
 # The Dusklight version to build against: a release tag (e.g. "v2.0.0") or a commit SHA.
 if (NOT DUSKLIGHT_VERSION)
-    set(DUSKLIGHT_VERSION "9adf6123e8a4f5c07b588168061bb5a41b2e262c")
+    set(DUSKLIGHT_VERSION "544ed8751f3347301f7e1e06a8376098de2dabe7")
 endif ()
 
 # Fetches the Dusklight sources into ./dusklight and provides DUSKLIGHT_DIR.

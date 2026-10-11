@@ -253,8 +253,7 @@ void calcShading(ActorGltf* actor_gltf, render::UniformGXShading& shading, daAli
     shading.color1 = helpers::convertColor(*mat->getTevColor(1));
     shading.kColor0 = helpers::convertColor(link.tevStr.TevKColor);
 
-    int64_t scalePercent = config::kPercentValueBase;
-    checkResult(svc_config->get_int(mod_ctx, config::cVarVrmBrightness, &scalePercent));
+    int64_t scalePercent = config::cVarVrmBrightness.get().value();
     auto const scale = static_cast<float>(scalePercent) / static_cast<float>(config::kPercentValueBase);
     for (const auto & tg3Material : actor_gltf->scene->materials) {
         tg3Material->color = glm::vec4(scale, scale, scale, 1.0f);
@@ -311,9 +310,7 @@ bool should_draw_actor() {
 }
 
 bool shouldRenderLink() {
-    bool result;
-    checkResult(svc_config->get_bool(mod_ctx, config::cVarRenderLink, &result));
-    return result;
+    return config::cVarRenderLink.get().value();
 }
 
 HookAction on_link_draw_pre(ModContext*, void* args, void*, void*) {
@@ -348,12 +345,7 @@ HookAction link_create_heap(ModContext*, void* args, void*, void*) {
 cPhs_Step ActorGltf::Create() {
     AuroraGXSync();
 
-    size_t length;
-    checkResult(svc_config->get_string(mod_ctx, config::cVarVrmPathHandle, nullptr, 0, &length));
-    std::string buf;
-    buf.resize(length);
-    checkResult(svc_config->get_string(
-        mod_ctx, config::cVarVrmPathHandle, buf.data(), buf.size() + 1, nullptr));
+    auto buf = config::cVarVrmPathHandle.get().value();
 
     try {
         auto loadedScene = std::make_shared<Scene>(loader::loadScene(buf.c_str()));
@@ -391,8 +383,7 @@ int ActorGltf::Execute() {
 
     mDoMtx_stack_c::copy(link->mpLinkModel->getBaseTRMtx());
 
-    int64_t scalePercent = config::kPercentValueBase;
-    checkResult(svc_config->get_int(mod_ctx, config::cVarVrmScale, &scalePercent));
+    int64_t scalePercent = config::cVarVrmScale.get().value();
     auto const scale = kModelScaleFactor * scalePercent / static_cast<float>(config::kPercentValueBase);
     mDoMtx_stack_c::scaleM(scale, scale, scale);
 
@@ -464,6 +455,7 @@ ModResult modInit() {
 
 ModResult modShutdown() {
     pipelines::shutdown();
+    config::shutdown();
 
     return MOD_OK;
 }
