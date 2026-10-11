@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.26)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if (NOT DEFINED CMAKE_BUILD_TYPE AND NOT DEFINED ENV{CMAKE_BUILD_TYPE})
     set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type")
@@ -11,12 +12,14 @@ project(dusklight_vrm VERSION 1.0.0 LANGUAGES C CXX)
 
 option(ENABLE_IMGUI "Enable imgui UI for development only")
 
-add_compile_options(
-        $<$<COMPILE_LANGUAGE:C,CXX>:/bigobj>
-        $<$<COMPILE_LANGUAGE:C,CXX>:/MP>
-        $<$<COMPILE_LANGUAGE:C,CXX>:/FS>
-        /Zc:__cplusplus # Enable updated `__cplusplus` macro
-)
+if (WIN32)
+    add_compile_options(
+            $<$<COMPILE_LANGUAGE:C,CXX>:/bigobj>
+            $<$<COMPILE_LANGUAGE:C,CXX>:/MP>
+            $<$<COMPILE_LANGUAGE:C,CXX>:/FS>
+            /Zc:__cplusplus # Enable updated `__cplusplus` macro
+    )
+endif ()
 
 # The Dusklight version to build against: a release tag (e.g. "v2.0.0") or a commit SHA.
 if (NOT DUSKLIGHT_VERSION)
@@ -91,5 +94,7 @@ endif ()
 if (MSVC)
     target_compile_options(dusklight_vrm PRIVATE /guard:cf)
     target_link_options(dusklight_vrm PRIVATE /guard:cf)
-    target_link_options(dusklight_vrm PRIVATE /CETCOMPAT)
+    if (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "x64")
+        target_link_options(dusklight_vrm PRIVATE /CETCOMPAT)
+    endif ()
 endif ()

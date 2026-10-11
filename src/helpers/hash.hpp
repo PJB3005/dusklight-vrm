@@ -1,17 +1,18 @@
 #pragma once
 
-#include <functional>
-
 // C++ is a language
 
 namespace slugcat::vrm::helpers {
+
+constexpr size_t hashSingle(uint32_t val) {
+    return val;
+}
 
 // https://stackoverflow.com/a/2595226
 template<typename ... Args>
 void hashCombine(size_t& seed, const Args& ... v) {
     ([&] {
-        std::hash<Args> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+        seed ^= hashSingle(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
     } (), ...);
 
 }

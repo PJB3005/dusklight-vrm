@@ -19,31 +19,42 @@ jobs:
         include:
           - platform: linux-x86_64
             runner: ubuntu-latest
+            rust-triple: "x86_64-unknown-linux-gnu"
           - platform: linux-aarch64
             runner: ubuntu-24.04-arm
+            rust-triple: "aarch64-unknown-linux-gnu"
           - platform: macos-arm64
             runner: macos-latest
+            rust-triple: "aarch64-apple-darwin"
           - platform: macos-x86_64
             runner: macos-latest
             cmake_args: -DCMAKE_OSX_ARCHITECTURES=x86_64
+            rust-triple: "x86_64-apple-darwin"
           - platform: ios-arm64
             runner: macos-latest
             cmake_args: >-
               -DCMAKE_SYSTEM_NAME=iOS
               -DCMAKE_OSX_ARCHITECTURES=arm64
               -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+            rust-triple: "aarch64-apple-ios"
           - platform: windows-amd64
             runner: windows-latest
             msvc_arch: amd64
+            rust-triple: "x86_64-pc-windows-msvc"
           - platform: windows-arm64
             runner: windows-latest
             msvc_arch: amd64_arm64
+            rust-triple: "aarch64-pc-windows-msvc"
           - platform: android-aarch64
             runner: ubuntu-latest
             android_ndk: "29.0.14206865"
+            rust-triple: "aarch64-linux-android"
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: "ensure rust target available"
+        run: "rustup target add ${{matrix.rust-triple}}"
 
       - name: Read pinned Dusklight version
         id: dusklight
@@ -80,6 +91,7 @@ jobs:
             args+=(-DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/${{matrix.android_ndk}}/build/cmake/android.toolchain.cmake"
                    -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28)
           fi
+          args+=("-DRust_CARGO_TARGET=${{matrix.rust-triple}}")
           cmake -B build "${args[@]}"
 
       - name: Build

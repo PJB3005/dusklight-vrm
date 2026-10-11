@@ -154,7 +154,7 @@ struct std::hash<slugcat::vrm::loader::SamplerKey> {
     std::size_t operator()(slugcat::vrm::loader::SamplerKey const& key) const noexcept {
         using namespace slugcat::vrm::helpers;
 
-        return hashCombine(key.minFilter, key.magFilter, key.mipmapFilter, key.modeU, key.modeV);
+        return hashCombine(static_cast<uint32_t>(key.minFilter), static_cast<uint32_t>(key.magFilter), static_cast<uint32_t>(key.mipmapFilter), static_cast<uint32_t>(key.modeU), static_cast<uint32_t>(key.modeV));
     }
 };
 

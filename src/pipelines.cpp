@@ -6,6 +6,7 @@
 #include "render.hpp"
 #include "shader.hpp"
 
+#include <thread>
 #include <mutex>
 #include <xxhash.h>
 
