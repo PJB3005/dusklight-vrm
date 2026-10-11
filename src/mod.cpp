@@ -24,6 +24,7 @@
 #include "mods/svc/log.hpp"
 
 #include <d/actor/d_a_alink.h>
+#include <d/actor/d_a_demo00.h>
 
 #include "config.hpp"
 #include "debug_imgui.hpp"
@@ -35,6 +36,8 @@
 DEFINE_HOOK(&daAlink_c::basicModelDraw, LinkBasicModelDraw);
 DEFINE_HOOK(&daAlink_c::modelDraw, LinkDraw);
 DEFINE_HOOK(&daAlink_c::createHeap, LinkCreateHeap);
+
+DEFINE_HOOK(&daDemo00_c::draw, DemoDraw);
 
 using namespace mods::actor;
 using namespace std::string_view_literals;
@@ -137,9 +140,13 @@ std::vector<glm::quat> getLocalRotations(std::unordered_set<u16> const& mappedJo
     return rotations;
 }
 
-void applyLinkPose(daAlink_c const& link, Scene& scene) {
-    auto const localRotations = getLocalRotations(scene.mappedLinkJoints, link.mpLinkModel);
-    auto const restRotations = getRestRotations(scene.mappedLinkJoints, link.mpLinkModel->getModelData());
+void applyLinkPose(Scene& scene) {
+    if (!modelToSwap) {
+        return;
+    }
+
+    auto const localRotations = getLocalRotations(scene.mappedLinkJoints, modelToSwap);
+    auto const restRotations = getRestRotations(scene.mappedLinkJoints, modelToSwap->getModelData());
 
     for (const auto& [humanoidBone, linkJoint] : bones::vrmBonesToLinkJoints) {
         auto const foundEnt = scene.humanoidBones.find(humanoidBone);
@@ -160,11 +167,14 @@ void applyLinkPose(daAlink_c const& link, Scene& scene) {
     }
 }
 
-void applyLinkRootTranslation(
-    daAlink_c const& link, Scene& scene, glm::mat4 const& replacementBaseMtx) {
-    auto const baseMtx = matrix::fromDolphinMtx(link.mpLinkModel->getBaseTRMtx());
-    auto const rootMtx = matrix::fromDolphinMtx(link.mpLinkModel->getAnmMtx(0));
-    auto const dataOffset = link.mpLinkModel->getModelData()
+void applyLinkRootTranslation(Scene& scene, glm::mat4 const& replacementBaseMtx) {
+    if (!modelToSwap) {
+        return;
+    }
+
+    auto const baseMtx = matrix::fromDolphinMtx(modelToSwap->getBaseTRMtx());
+    auto const rootMtx = matrix::fromDolphinMtx(modelToSwap->getAnmMtx(0));
+    auto const dataOffset = modelToSwap->getModelData()
                                 ->getJointTree()
                                 .getJointNodePointer(0)
                                 ->getTransformInfo()
@@ -329,7 +339,38 @@ HookAction on_link_draw_pre(ModContext*, void* args, void*, void*) {
         i_model == link->mpDemoFCBlendModel || i_model == link->mpDemoFCTongueModel ||
         i_model == link->mpDemoHLTmpModel || i_model == link->mpDemoHRTmpModel)
     {
+        modelToSwap = link->mpLinkModel;
         return HOOK_SKIP_ORIGINAL;
+    }
+
+    return HOOK_CONTINUE;
+}
+
+HookAction on_demo_draw_pre(ModContext*, void* args, void*, void*) {
+    if (shouldRenderLink()) {
+        return HOOK_CONTINUE;
+    }
+
+    if (!should_draw_actor()) {
+        return HOOK_CONTINUE;
+    }
+
+    daDemo00_c*& demo = mods::arg_ref<daDemo00_c*>(args, 0);
+
+    if (demo->mModel.field_0x5d4) {
+        J3DModelData* modelData = demo->mModel.field_0x5d4->getModelData();
+        for (int i = 0; i < modelData->getMaterialNum(); i++) {
+            if (strcmp(modelData->getMaterialNodePointer(i)->mMaterialName, "bl_upbody_m") == 0) {
+                modelToSwap = demo->mModel.field_0x5d4;
+                cutsceneRender = true;
+                return HOOK_SKIP_ORIGINAL;
+            }
+
+            if (std::strncmp(modelData->getMaterialNodePointer(i)->mMaterialName, "al", std::strlen("al")) == 0 ||
+                std::strncmp(modelData->getMaterialNodePointer(i)->mMaterialName, "Blink", std::strlen("Blink")) == 0) {
+                return HOOK_SKIP_ORIGINAL;
+            }
+        }
     }
 
     return HOOK_CONTINUE;
@@ -364,6 +405,8 @@ cPhs_Step ActorGltf::Create() {
 }
 
 int ActorGltf::Delete() {
+    modelToSwap = nullptr;
+    cutsceneRender = false;
     this->~ActorGltf();
     return 1;
 }
@@ -377,11 +420,11 @@ constexpr float kModelScaleFactor = 150;
 int ActorGltf::Execute() {
     daAlink_c* link = daAlink_getAlinkActorClass();
 
-    if (!link || !should_draw_actor()) {
+    if ((!link || !should_draw_actor() || !modelToSwap) && !cutsceneRender) {
         return 0;
     }
 
-    mDoMtx_stack_c::copy(link->mpLinkModel->getBaseTRMtx());
+    mDoMtx_stack_c::copy(modelToSwap->getBaseTRMtx());
 
     int64_t scalePercent = config::cVarVrmScale.get().value();
     auto const scale = kModelScaleFactor * scalePercent / static_cast<float>(config::kPercentValueBase);
@@ -389,8 +432,8 @@ int ActorGltf::Execute() {
 
     auto const baseMtx = matrix::fromDolphinMtx(mDoMtx_stack_c::get());
 
-    applyLinkPose(*link, *scene);
-    applyLinkRootTranslation(*link, *scene, baseMtx);
+    applyLinkPose(*scene);
+    applyLinkRootTranslation(*scene, baseMtx);
     applyFirstPersonMode(*link, *scene);
 
     applyTransformsRecursive(*scene, scene->root, baseMtx);
@@ -401,7 +444,7 @@ int ActorGltf::Execute() {
 
 int ActorGltf::Draw() {
     daAlink_c* link = daAlink_getAlinkActorClass();
-    if (!link || !should_draw_actor()) {
+    if ((!link || !should_draw_actor() || !modelToSwap) && !cutsceneRender) {
         return 0;
     }
 
@@ -440,6 +483,7 @@ ModResult modInit() {
     mods::hook::add_pre<LinkCreateHeap>(link_create_heap);
     mods::hook::add_pre<LinkBasicModelDraw>(on_link_draw_pre);
     mods::hook::add_pre<LinkDraw>(on_link_draw_pre);
+    mods::hook::add_pre<DemoDraw>(on_demo_draw_pre);
 
     if (svc_actor->register_actor(mod_ctx, &ActorGltf::sProfile, &ActorGltf::sProcName,
             &ActorGltf::sActorHandle) != MOD_OK)

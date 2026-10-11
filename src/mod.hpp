@@ -14,6 +14,9 @@
 
 namespace slugcat::vrm {
 
+J3DModel* modelToSwap;
+bool cutsceneRender;
+
 class ActorGltf : public fopAc_ac_c {
 public:
     render::FoobarPacket packet;
