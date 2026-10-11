@@ -198,7 +198,7 @@ void applyFirstPersonMode(daAlink_c const& link, Scene& scene) {
         if (humanoidBone == bones::vrm::kBoneNeck) {
             auto& entity = scene.get_entity(foundEnt->second);
             if (dComIfGp_checkCameraAttentionStatus(link.field_0x317c, 0x20)) {
-                entity.scale = {0,0,0};
+                entity.scale = {0.001f, 0.001f, 0.001f};
             } else {
                 entity.scale = entity.originalScale;
             }
