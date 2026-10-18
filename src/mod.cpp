@@ -362,13 +362,21 @@ HookAction on_demo_draw_pre(ModContext*, void* args, void*, void*) {
         for (int i = 0; i < modelData->getMaterialNum(); i++) {
             if (strcmp(modelData->getMaterialNodePointer(i)->mMaterialName, "bl_upbody_m") == 0) {
                 modelToSwap = demo->mModel.field_0x5d4;
-                cutsceneRender = true;
-                return HOOK_SKIP_ORIGINAL;
+                for (int i = 0; i < modelData->getMaterialNum(); i++) {
+                    modelData->getMaterialNodePointer(i)->getShape()->hide();
+                }
+                return HOOK_CONTINUE;
             }
 
-            if (std::strncmp(modelData->getMaterialNodePointer(i)->mMaterialName, "al", std::strlen("al")) == 0 ||
-                std::strncmp(modelData->getMaterialNodePointer(i)->mMaterialName, "Blink", std::strlen("Blink")) == 0) {
-                return HOOK_SKIP_ORIGINAL;
+            if (std::strncmp(modelData->getMaterialNodePointer(i)->mMaterialName, "al",
+                    std::strlen("al")) == 0 ||
+                std::strncmp(modelData->getMaterialNodePointer(i)->mMaterialName, "Blink",
+                    std::strlen("Blink")) == 0)
+            {
+                for (int i = 0; i < modelData->getMaterialNum(); i++) {
+                    modelData->getMaterialNodePointer(i)->getShape()->hide();
+                }
+                return HOOK_CONTINUE;
             }
         }
     }
@@ -406,7 +414,6 @@ cPhs_Step ActorGltf::Create() {
 
 int ActorGltf::Delete() {
     modelToSwap = nullptr;
-    cutsceneRender = false;
     this->~ActorGltf();
     return 1;
 }
@@ -420,7 +427,7 @@ constexpr float kModelScaleFactor = 150;
 int ActorGltf::Execute() {
     daAlink_c* link = daAlink_getAlinkActorClass();
 
-    if ((!link || !should_draw_actor() || !modelToSwap) && !cutsceneRender) {
+    if (!link || !should_draw_actor() || !modelToSwap) {
         return 0;
     }
 
@@ -444,7 +451,7 @@ int ActorGltf::Execute() {
 
 int ActorGltf::Draw() {
     daAlink_c* link = daAlink_getAlinkActorClass();
-    if ((!link || !should_draw_actor() || !modelToSwap) && !cutsceneRender) {
+    if (!link || !should_draw_actor() || !modelToSwap) {
         return 0;
     }
 
