@@ -314,7 +314,7 @@ bool shouldRenderLink() {
 }
 
 HookAction on_set_draw_hand_pre(ModContext*, void* args, void*, void*) {
-    if (gAllActors[0]) {
+    if (!gAllActors.empty() && gAllActors[0]) {
         daAlink_c*& link = mods::arg_ref<daAlink_c*>(args, 0);
         gAllActors[0]->packet.shading.kColor0 = helpers::convertColor(link->tevStr.TevKColor);
     }
