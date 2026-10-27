@@ -1,9 +1,12 @@
 #pragma once
 
+#include <memory>
+
 #include "scene.hpp"
 
 namespace slugcat::vrm::loader {
 
-scene::Scene loadScene(char const* path);
+std::tuple<std::shared_ptr<scene::Scene>, wgpu::CommandBuffer> loadScene(char const* path);
+void applyLoad(wgpu::CommandEncoder& encoder, wgpu::CommandBuffer const& state);
 
 }

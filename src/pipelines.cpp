@@ -2,11 +2,10 @@
 
 #define XXH_STATIC_LINKING_ONLY
 #include "helpers/channel.hpp"
-#include "helpers/thread.hpp"
 #include "render.hpp"
 #include "shader.hpp"
+#include "task_thread.hpp"
 
-#include <thread>
 #include <mutex>
 #include <xxhash.h>
 
@@ -19,14 +18,17 @@ namespace {
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-struct PipelineRequest {
+struct PipelineRequest final : task_thread::TaskRequest {
     XXH64_hash_t hash;
     PipelineDesc desc;
+
+    constexpr PipelineRequest(XXH64_hash_t const hash, PipelineDesc const& desc)
+        : hash(hash), desc(desc) {}
+
+    ~PipelineRequest() override = default;
+    void execute() override;
 };
 
-std::atomic_bool sPipelineThreadShutdown;
-std::thread sPipelineCompilationThread;
-helpers::Channel<PipelineRequest> sPipelineChannel;
 std::unordered_map<XXH64_hash_t, std::optional<wgpu::RenderPipeline>> sPipelines;
 std::mutex sPipelinesMutex;
 
@@ -157,18 +159,8 @@ void compileSinglePipeline(PipelineRequest const& request) {
     sPipelines[request.hash] = std::move(pipeline);
 }
 
-void pipelineThreadMain() {
-    helpers::setThreadName("VRM pipeline compilation thread");
-    helpers::setThreadLowPriority();
-
-    while (true) {
-        auto const req = sPipelineChannel.read();
-        if (sPipelineThreadShutdown) {
-            break;
-        }
-
-        compileSinglePipeline(req);
-    }
+void PipelineRequest::execute() {
+    compileSinglePipeline(*this);
 }
 
 } // namespace
@@ -183,19 +175,9 @@ std::optional<wgpu::RenderPipeline> try_get_pipeline(PipelineDesc const& desc) {
     }
 
     sPipelines[hash] = std::nullopt;
-    sPipelineChannel.write({hash, desc});
+    task_thread::run_task(std::make_unique<PipelineRequest>(hash, desc));
 
     return std::nullopt;
-}
-
-void init() {
-    sPipelineCompilationThread = std::thread(pipelineThreadMain);
-}
-
-void shutdown() {
-    sPipelineThreadShutdown = true;
-    sPipelineChannel.write(PipelineRequest{});
-    sPipelineCompilationThread.join();
 }
 
 } // namespace slugcat::vrm::pipelines

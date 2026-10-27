@@ -19,8 +19,6 @@ struct PipelineDesc {
 
 static_assert(std::has_unique_object_representations_v<PipelineDesc>);
 
-void init();
-void shutdown();
 std::optional<wgpu::RenderPipeline> try_get_pipeline(PipelineDesc const &desc);
 
 } // namespace slugcat::vrm::pipelines

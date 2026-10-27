@@ -87,7 +87,7 @@ struct Entity {
 
     explicit Entity(std::string_view const name) : name(name) {
     }
-    Entity(Entity const&) = delete;
+    Entity(Entity const&) = default;
     Entity(Entity&&) = default;
 };
 
@@ -109,6 +109,8 @@ struct Scene {
     [[nodiscard]] Entity& get_entity(EntityId id) {
         return *entities.at(id);
     }
+
+    Scene clone() const;
 };
 
 glm::mat4 calcLocalTransform(Entity const& entity);

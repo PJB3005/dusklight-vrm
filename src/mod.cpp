@@ -1,8 +1,6 @@
 #include "JSystem/J3DGraphBase/J3DDrawBuffer.h"
 #include "d/d_com_inf_game.h"
 
-#include "glm/gtx/matrix_decompose.hpp"
-#include "loader.hpp"
 #include "mod.hpp"
 #include "ui.hpp"
 
@@ -27,10 +25,9 @@
 
 #include "config.hpp"
 #include "debug_imgui.hpp"
-#include "helpers/hash.hpp"
 #include "helpers/result.hpp"
-#include "pipelines.hpp"
-#include "webgpu/webgpu_cpp.h"
+#include "scene_cache.hpp"
+#include "task_thread.hpp"
 
 DEFINE_HOOK(&daAlink_c::basicModelDraw, LinkBasicModelDraw);
 DEFINE_HOOK(&daAlink_c::modelDraw, LinkDraw);
@@ -314,6 +311,7 @@ bool should_draw_actor() {
         return false;
     }
 
+
     return !link->checkStatusWindowDraw() && !link->checkPlayerNoDraw() && !link->checkWolf() && link->mClothesChangeWaitTimer == 0;
 }
 
@@ -359,18 +357,21 @@ HookAction link_create_heap(ModContext*, void* args, void*, void*) {
 }
 
 cPhs_Step ActorGltf::Create() {
-    AuroraGXSync();
-
     auto buf = config::cVarVrmPathHandle.get().value();
 
-    try {
-        auto loadedScene = std::make_shared<Scene>(loader::loadScene(buf.c_str()));
-        packet.scene = loadedScene;
-        scene = std::move(loadedScene);
-    } catch (std::runtime_error const& e) {
-        mods::log::error("Failed to load VRM '{}': {}", buf, e.what());
+    auto loadedScene = scene_cache::load(buf);
+    if (!loadedScene.has_value()) {
         return cPhs_ERROR_e;
     }
+
+    if (loadedScene.value() == nullptr) {
+        return cPhs_LOADING_e;
+    }
+
+    auto new_scene = std::make_shared<Scene>(loadedScene.value()->clone());
+
+    packet.scene = loadedScene.value();
+    scene = std::move(loadedScene.value());
 
     gAllActors.push_back(this);
 
@@ -451,7 +452,7 @@ ModResult modInit() {
     render::init();
     config::init();
     ui::init();
-    pipelines::init();
+    task_thread::init();
 
     mods::hook::add_pre<LinkCreateHeap>(link_create_heap);
     mods::hook::add_pre<LinkBasicModelDraw>(on_link_draw_pre);
@@ -471,7 +472,7 @@ ModResult modInit() {
 }
 
 ModResult modShutdown() {
-    pipelines::shutdown();
+    task_thread::shutdown();
     config::shutdown();
 
     return MOD_OK;

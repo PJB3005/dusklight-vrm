@@ -176,6 +176,7 @@ struct LoaderState {
     std::unordered_map<int32_t, std::shared_ptr<scene::SharedSkinData>> skinData;
     std::unordered_map<int32_t, wgpu::Buffer> bufferViews;
     std::unordered_map<SamplerKey, wgpu::Sampler> samplers;
+    wgpu::CommandEncoder finalize_encoder;
 
     scene::EntityId alloc_entity(std::string_view name) {
         scene::EntityId const id = scene.entities.size();
@@ -233,8 +234,25 @@ struct LoaderState {
         auto buffer = render::sDevice.CreateBuffer(&bufferDesc);
         bufferViews.emplace(index, buffer);
 
-        render::sQueue.WriteBuffer(
-            buffer, 0, &gltfBuffer.data.data[bufferView.byte_offset], bufferView.byte_length);
+        wgpu::BufferDescriptor stagingBufferDesc{
+            .usage = wgpu::BufferUsage::CopySrc,
+            .size = bufferView.byte_length,
+            .mappedAtCreation = true,
+        };
+
+        auto const stagingBuffer = render::sDevice.CreateBuffer(&stagingBufferDesc);
+        std::memcpy(
+            stagingBuffer.GetMappedRange(),
+            &gltfBuffer.data.data[bufferView.byte_offset],
+            bufferView.byte_length);
+        stagingBuffer.Unmap();
+
+        finalize_encoder.CopyBufferToBuffer(
+            stagingBuffer,
+            0,
+            buffer,
+            0,
+            bufferView.byte_length);
 
         return convert_accessor(std::move(buffer), accessor);
     }
@@ -846,7 +864,7 @@ void calcMappedJoints(scene::Scene& scene) {
 
 }  // namespace
 
-scene::Scene loadScene(char const* path) {
+std::tuple<std::shared_ptr<scene::Scene>, wgpu::CommandBuffer> loadScene(char const* path) {
     Tg3Model model(path);
 
     if (model->default_scene < 0) {
@@ -855,6 +873,7 @@ scene::Scene loadScene(char const* path) {
 
     scene::Scene loaded;
     LoaderState state{*model, loaded};
+    state.finalize_encoder = render::sDevice.CreateCommandEncoder();
     state.nodesToEntities.resize(model->nodes_count, -1);
 
     auto const& scene = model->scenes[model->default_scene];
@@ -876,7 +895,7 @@ scene::Scene loadScene(char const* path) {
 
     //applyDabStraightToForehead(loaded);
 
-    return loaded;
+    return {std::make_shared<scene::Scene>(std::move(loaded)), state.finalize_encoder.Finish()};
 }
 
 }  // namespace slugcat::vrm::loader

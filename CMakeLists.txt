@@ -52,8 +52,12 @@ add_mod(dusklight_vrm
             src/pipelines.hpp
             src/render.cpp
             src/scene.cpp
+            src/scene_cache.cpp
+            src/scene_cache.hpp
             src/services.cpp
             src/shader.cpp
+            src/task_thread.cpp
+            src/task_thread.hpp
             src/ui.cpp
         MOD_JSON "${CMAKE_CURRENT_BINARY_DIR}/mod.json"
         RES_DIR res            # mod resources, including icon.png and banner.png
