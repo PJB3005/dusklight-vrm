@@ -35,6 +35,7 @@
 DEFINE_HOOK(&daAlink_c::basicModelDraw, LinkBasicModelDraw);
 DEFINE_HOOK(&daAlink_c::modelDraw, LinkDraw);
 DEFINE_HOOK(&daAlink_c::createHeap, LinkCreateHeap);
+DEFINE_HOOK(&daAlink_c::setDrawHand, LinkSetDrawHand);
 
 using namespace mods::actor;
 using namespace std::string_view_literals;
@@ -251,7 +252,6 @@ void calcShading(ActorGltf* actor_gltf, render::UniformGXShading& shading, daAli
 
     shading.lighting.ambientColor = helpers::convertColor(link.tevStr.AmbCol);
     shading.color1 = helpers::convertColor(*mat->getTevColor(1));
-    shading.kColor0 = helpers::convertColor(link.tevStr.TevKColor);
 
     int64_t scalePercent = config::cVarVrmBrightness.get().value();
     auto const scale = static_cast<float>(scalePercent) / static_cast<float>(config::kPercentValueBase);
@@ -311,6 +311,14 @@ bool should_draw_actor() {
 
 bool shouldRenderLink() {
     return config::cVarRenderLink.get().value();
+}
+
+HookAction on_set_draw_hand_pre(ModContext*, void* args, void*, void*) {
+    if (gAllActors[0]) {
+        daAlink_c*& link = mods::arg_ref<daAlink_c*>(args, 0);
+        gAllActors[0]->packet.shading.kColor0 = helpers::convertColor(link->tevStr.TevKColor);
+    }
+    return HOOK_CONTINUE;
 }
 
 HookAction on_link_draw_pre(ModContext*, void* args, void*, void*) {
@@ -440,6 +448,7 @@ ModResult modInit() {
     mods::hook::add_pre<LinkCreateHeap>(link_create_heap);
     mods::hook::add_pre<LinkBasicModelDraw>(on_link_draw_pre);
     mods::hook::add_pre<LinkDraw>(on_link_draw_pre);
+    mods::hook::add_pre<LinkSetDrawHand>(on_set_draw_hand_pre);
 
     if (svc_actor->register_actor(mod_ctx, &ActorGltf::sProfile, &ActorGltf::sProcName,
             &ActorGltf::sActorHandle) != MOD_OK)
