@@ -203,7 +203,15 @@ void applyFirstPersonMode(daAlink_c const& link, Scene& scene) {
             } else {
                 entity.scale = entity.originalScale;
             }
-            break;
+        }
+
+        if (humanoidBone == bones::vrm::kBoneLeftFoot || humanoidBone == bones::vrm::kBoneRightFoot) {
+            auto& entity = scene.get_entity(foundEnt->second);
+            if (link.checkEquipHeavyBoots()) {
+                entity.scale = {0.001f, 0.001f, 0.001f};
+            } else {
+                entity.scale = entity.originalScale;
+            }
         }
     }
 }
