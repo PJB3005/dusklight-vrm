@@ -55,7 +55,7 @@ jobs:
 
       # The Command Line Tools linker always matches its own SDK.
       - name: "Use the Command Line Tools toolchain"
-        if: matrix.platform == 'macos'
+        if: matrix.platform == 'macos-arm64' || matrix.platform == 'macos-x86_64'
         run: sudo xcode-select -s /Library/Developer/CommandLineTools
 
       - name: "ensure rust target available"
